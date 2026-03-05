@@ -1,0 +1,28 @@
+# Facts-only Mutual Fund FAQ RAG — local prototype
+# Python 3.9+
+
+# Scraping
+requests>=2.28.0
+beautifulsoup4>=4.11.0
+
+# Optional: if INDMoney requires JS rendering
+# playwright>=1.30.0
+
+# Phase 2: Embedding & vector store (FAISS, no sqlite)
+# sentence_transformers needs scipy/sklearn compatible with your NumPy (no numpy.int)
+scipy>=1.10.0
+scikit-learn>=1.2.0
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.0
+
+# Phase 3: Groq LLM; load .env for GROQ_API_KEY
+groq>=0.4.0
+python-dotenv>=1.0.0
+pytest>=7.0.0
+
+# Phase 4: Chat app backend + frontend
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# Phase 5: Scheduler (optional --schedule for periodic refresh)
+apscheduler>=3.10.0

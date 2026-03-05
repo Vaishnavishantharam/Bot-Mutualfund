@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fund Assistant</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- Welcome screen -->
+    <section id="welcome-screen" class="screen active">
+      <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="status-icons"></div>
+      </div>
+      <div class="welcome-content">
+        <div class="hero-graphic">
+          <div class="hero-icon">💰</div>
+          <div class="hero-stars">✦ ✦</div>
+        </div>
+        <h1 class="welcome-title">Hi! I'm Emily</h1>
+        <p class="welcome-subtitle">your fund assistant.</p>
+        <p class="welcome-tagline">Ask about HDFC scheme details—expense ratio, SIP, benchmark & more.</p>
+        <p class="welcome-last-updated" id="welcome-last-updated" aria-live="polite"></p>
+        <div class="input-row">
+          <input type="text" id="welcome-input" class="input-field" placeholder="Ask me anything about HDFC schemes..." autocomplete="off" />
+          <button type="button" id="welcome-send" class="send-btn" aria-label="Send">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+      <nav class="bottom-nav">
+        <a href="#" class="nav-item" data-screen="welcome" aria-label="Home">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>Home</span>
+        </a>
+        <a href="#" class="nav-item" aria-label="Schemes">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span>Schemes</span>
+        </a>
+        <a href="#" class="nav-item active" data-screen="chat" aria-label="Chat">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Chat</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-refresh" aria-label="New chat">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          <span>New</span>
+        </a>
+      </nav>
+    </section>
+
+    <!-- Chat screen -->
+    <section id="chat-screen" class="screen">
+      <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="status-icons"></div>
+      </div>
+      <header class="chat-header">
+        <button type="button" class="back-btn" id="back-to-welcome" aria-label="Back">←</button>
+        <h2 class="chat-title">AI Assistant</h2>
+        <button type="button" class="menu-btn" aria-label="Menu">⋮</button>
+      </header>
+      <div class="chat-messages" id="chat-messages">
+        <!-- Messages appended by JS -->
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" class="input-field" placeholder="Ask about HDFC schemes..." autocomplete="off" />
+        <button type="button" id="chat-send" class="send-btn" aria-label="Send">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </section>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

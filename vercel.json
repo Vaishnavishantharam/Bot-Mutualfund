@@ -1,0 +1,5 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "mkdir -p public && cp -r phase_4/frontend/* public/",
+  "outputDirectory": "public"
+}
