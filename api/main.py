@@ -32,6 +32,32 @@ async def query_endpoint(body: QueryBody):
     }
 
 
+@app.get("/api/last-updated")
+async def last_updated():
+    """
+    Return last_updated from data/schemes.json (meta.last_scraped) or
+    data/last_indexed_at for frontend display on Vercel.
+    """
+    import json
+    schemes_path = _ROOT / "data" / "schemes.json"
+    if schemes_path.exists():
+        try:
+            with open(schemes_path, encoding="utf-8") as f:
+                meta = json.load(f).get("meta", {})
+            lu = meta.get("last_scraped") or ""
+            if lu:
+                return {"last_updated": lu}
+        except Exception:
+            pass
+    sentinel = _ROOT / "data" / "last_indexed_at"
+    if sentinel.exists():
+        try:
+            return {"last_updated": sentinel.read_text(encoding="utf-8").strip()}
+        except Exception:
+            pass
+    return {"last_updated": ""}
+
+
 # Serve the existing Phase 4 frontend at `/`
 _frontend = _ROOT / "phase_4" / "frontend"
 if _frontend.exists():
