@@ -248,11 +248,6 @@
   }
   loadLastUpdated();
 
-  // Wait for backend pipeline to be ready (avoids 503 / timeout on first query)
-  try {
-    setServiceReady(false);
-    pollReady();
-  } catch (e) {
-    setServiceReady(true);
-  }
+  // Enable UI immediately; serverless backend is fast enough, and errors are handled per-request.
+  setServiceReady(true);
 })();
