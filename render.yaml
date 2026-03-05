@@ -1,0 +1,11 @@
+# Render.com: deploy the FastAPI backend
+# Use this when creating a Web Service and choosing "Blueprint" or paste this config
+services:
+  - type: web
+    name: mutual-fund-bot-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn phase_4.backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false  # set in Render dashboard

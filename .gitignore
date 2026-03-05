@@ -4,4 +4,4 @@ __pycache__/
 *.pyc
 .env
 *.log
-data/vector_store/
+# data/vector_store/ — uncomment to ignore (we commit it so Railway/Render have the index)
