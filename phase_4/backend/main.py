@@ -2,11 +2,14 @@
 Phase 4: Backend API — POST /query calls Phase 3 pipeline.
 Every response includes citation_url (exact source URL of the scheme used).
 Falls back to corpus (schemes.json) when the pipeline fails so the chat still returns answers.
+Preloads the pipeline in a background thread at startup so the first request can complete
+within Render's ~15s request timeout (free tier).
 """
 from __future__ import annotations
 
 import logging
 import sys
+import threading
 import traceback
 from pathlib import Path
 
@@ -22,10 +25,35 @@ from pydantic import BaseModel
 
 logger = logging.getLogger("phase_4")
 
+# Set when background preload has finished (success or failure). Until then, /api/query returns 503.
+_pipeline_ready = False
+
+
+def _preload_pipeline() -> None:
+    """Load Phase 3 pipeline (embeddings, FAISS, etc.) so first request is fast. Runs in background at startup."""
+    global _pipeline_ready
+    try:
+        from phase_3.query_pipeline import run_pipeline
+        run_pipeline("expense ratio")
+        logger.info("Pipeline preload completed")
+    except Exception as e:
+        logger.warning("Pipeline preload failed (first request may be slow or use fallback): %s", e)
+    finally:
+        _pipeline_ready = True
+
+
 app = FastAPI(
     title="Mutual Fund FAQ API",
     description="Facts-only HDFC scheme FAQ — answer, citation_url, last_updated",
 )
+
+
+@app.on_event("startup")
+def startup_preload() -> None:
+    """Start listening immediately; preload pipeline in background so first /api/query can finish within ~15s (Render timeout)."""
+    t = threading.Thread(target=_preload_pipeline, daemon=True)
+    t.start()
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,6 +78,12 @@ class QueryResponse(BaseModel):
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/api/ready")
+def ready() -> dict:
+    """Let frontend poll until pipeline is ready so we don't hit 503 or timeout on first query."""
+    return {"pipeline_ready": _pipeline_ready}
 
 
 @app.get("/api/last-updated")
@@ -80,6 +114,12 @@ def last_updated() -> dict:
 @app.post("/api/query", response_model=QueryResponse)
 def query(req: QueryRequest) -> QueryResponse:
     """Run Phase 3 pipeline; on failure use corpus fallback so the chat still returns answers."""
+    if not _pipeline_ready:
+        raise HTTPException(
+            status_code=503,
+            detail="Service is warming up. Please retry in 30 seconds.",
+            headers={"Retry-After": "30"},
+        )
     q = (req.query or "").strip()
     if not q:
         raise HTTPException(status_code=400, detail="query is required")

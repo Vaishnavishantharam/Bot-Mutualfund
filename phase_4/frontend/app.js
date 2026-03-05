@@ -9,6 +9,10 @@
   const chatSend = document.getElementById('chat-send');
   const backToWelcome = document.getElementById('back-to-welcome');
   const navRefresh = document.getElementById('nav-refresh');
+  const startingUpBanner = document.getElementById('starting-up-banner');
+
+  var serviceReady = false;
+  var isLoading = false;
 
   function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(function (el) {
@@ -69,8 +73,44 @@
   }
 
   function setLoading(loading) {
-    welcomeSend.disabled = loading;
-    chatSend.disabled = loading;
+    isLoading = loading;
+    welcomeSend.disabled = loading || !serviceReady;
+    chatSend.disabled = loading || !serviceReady;
+  }
+
+  function setServiceReady(ready) {
+    serviceReady = ready;
+    if (startingUpBanner) startingUpBanner.style.display = ready ? 'none' : 'block';
+    welcomeSend.disabled = !ready || isLoading;
+    chatSend.disabled = !ready || isLoading;
+    if (welcomeInput) welcomeInput.disabled = !ready;
+    if (chatInput) chatInput.disabled = !ready;
+  }
+
+  function pollReady() {
+    var maxAttempts = 24;
+    var attempt = 0;
+    function check() {
+      attempt++;
+      var controller = new AbortController();
+      var t = setTimeout(function () { controller.abort(); }, 12000);
+      fetch(API_BASE + '/api/ready', { method: 'GET', signal: controller.signal })
+        .then(function (r) { clearTimeout(t); return r.ok ? r.json() : {}; })
+        .then(function (data) {
+          if (data && data.pipeline_ready) {
+            setServiceReady(true);
+            return;
+          }
+          if (attempt < maxAttempts) setTimeout(check, 5000);
+          else setServiceReady(true);
+        })
+        .catch(function () {
+          clearTimeout(t);
+          if (attempt < maxAttempts) setTimeout(check, 5000);
+          else setServiceReady(true);
+        });
+    }
+    check();
   }
 
   function sendQuery(queryText) {
@@ -80,13 +120,34 @@
     welcomeInput.value = '';
     showTyping();
     setLoading(true);
+    // Backend cold start (Render etc.) can take 60–90s; use 2 min timeout
+    var timeoutMs = 120000;
+    var timeoutId = setTimeout(function () {
+      var el = document.getElementById('typing-indicator');
+      if (el) {
+        var bubble = el.querySelector('.message-typing');
+        if (bubble) bubble.textContent = 'Taking longer than usual (server may be waking up). Please wait…';
+      }
+    }, 15000);
+    var controller = new AbortController();
+    var fetchTimeout = setTimeout(function () { controller.abort(); }, timeoutMs);
     fetch(API_BASE + '/api/query', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: queryText.trim() })
+      body: JSON.stringify({ query: queryText.trim() }),
+      signal: controller.signal
     })
       .then(function (r) {
-        if (!r.ok) throw new Error(r.statusText || 'Request failed');
+        clearTimeout(timeoutId);
+        clearTimeout(fetchTimeout);
+        if (!r.ok) {
+          if (r.status === 503) {
+            return r.json().then(function (d) {
+              throw new Error(d.detail || 'Service is warming up. Please retry in 30 seconds.');
+            });
+          }
+          throw new Error(r.statusText || 'Request failed');
+        }
         return r.json();
       })
       .then(function (data) {
@@ -94,8 +155,13 @@
         appendMessage('assistant', data.answer || 'No answer returned.', data.citation_url, data.source);
       })
       .catch(function (err) {
+        clearTimeout(timeoutId);
+        clearTimeout(fetchTimeout);
         hideTyping();
-        appendMessage('assistant', 'Sorry, something went wrong. Please try again. (' + (err.message || 'Error') + ')', null);
+        var msg = err.name === 'AbortError'
+          ? 'The request took too long (server may be starting). Try again in a moment — the second try is usually faster.'
+          : (err.message || 'Sorry, something went wrong. Please try again.');
+        appendMessage('assistant', msg, null);
       })
       .finally(function () {
         setLoading(false);
@@ -174,6 +240,10 @@
       .catch(function () { el.style.display = 'none'; });
   }
   loadLastUpdated();
+
+  // Wait for backend pipeline to be ready (avoids 503 / timeout on first query)
+  setServiceReady(false);
+  pollReady();
 
   // Start on welcome
   showScreen('welcome');
