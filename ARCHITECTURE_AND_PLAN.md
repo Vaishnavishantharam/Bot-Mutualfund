@@ -7,6 +7,16 @@
 
 ---
 
+## Architecture principles (mandatory)
+
+1. **Separate folders per phase** — All phases in their own folders (`phase_1/` … `phase_6/`). No phase's logic lives in another phase's folder. Shared data at project root.
+2. **Correct URL for every answer** — Every response must include the **correct URL from which the information came** (`citation_url` = exact `source_url` of the scheme/chunk used; one of the 5 approved INDMoney pages).
+3. **Phase 3: Groq as LLM** — Phase 3 uses **Groq** for response generation (config in `phase_3/config.py`).
+4. **Answer only from embeddings** — The chatbot must **not** answer by itself. It must use **only** information stored in the embeddings (retrieved chunks). No answering from the LLM's general knowledge; if nothing relevant is retrieved, say the information is not in the corpus.
+5. **Personal information out of scope** — Questions about personal information (PAN, Aadhaar, account, OTP, email, phone, etc.) must **not** be answered. Refuse politely; state that the chatbot only answers factual scheme details and does not handle personal information. Do not store or process PII.
+
+---
+
 ## Return the correct source URL (every response)
 
 For **every** user question, the system must return the **correct URL from which the information is coming**. That URL must be the exact `source_url` of the scheme (or evidence chunk) used to answer the question — i.e. one of the 5 approved INDMoney scheme pages. The response payload must include:
@@ -387,3 +397,15 @@ Scheme name, plan type, option type, category from page title/headings/breadcrum
 - [ ] **Phase 4** (`phase_4/`): Backend API + frontend chat UI.
 - [ ] **Phase 5** (`phase_5/`): Scheduler: update latest data into Phase 1, then trigger Phase 2 (re-index), then Phase 3/4 (reload/cache invalidation) so the system uses latest data every time.
 - [ ] **Phase 6** (`phase_6/`): Improvements and operations (later).
+
+---
+
+## Compliance: Are we following this?
+
+| Requirement | Status | Where implemented |
+|-------------|--------|--------------------|
+| **All phases in separate folders** | Yes | `phase_1/`, `phase_2/`, `phase_3/`, `phase_4/`, `phase_5/`, `phase_6/` — each phase's code lives only in its folder. |
+| **Return correct URL for every answer** | Yes | `phase_3/generator.py`: `citation_url` = top chunk's `source_url`; `phase_3/scheme_matching.py`: filter chunks by detected scheme so cited URL matches the fund asked about. API and frontend return/show `citation_url`. |
+| **Phase 3 uses Groq as LLM** | Yes | `phase_3/config.py`: `GROQ_API_KEY`, `GROQ_MODEL`; `phase_3/generator.py`: Groq client for chat completion. |
+| **Answer only from embeddings (no answering by itself)** | Yes | `phase_3/generator.py`: `SYSTEM_PROMPT` instructs "answer ONLY using the provided context"; context is retrieved chunks only. No context = "information is not available in our corpus". |
+| **Personal information out of scope** | Yes | `phase_3/classifier.py`: `PII_PATTERNS` and `personal_info` label; `phase_3/query_pipeline.py`: if `personal_info` → `generate_refusal("personal_info", ...)` with message that the chatbot does not handle personal information. |

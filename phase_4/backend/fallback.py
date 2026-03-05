@@ -37,6 +37,34 @@ REFUSAL_REGEX = re.compile("|".join(REFUSAL_PATTERNS), re.IGNORECASE)
 
 REFUSAL_MESSAGE = "This chatbot only answers factual scheme details (e.g. expense ratio, exit load, minimum SIP) from its corpus. It does not give investment advice. For investment decisions, please consult a SEBI-registered adviser."
 
+# Personal information / PII in fallback mode (name, address, PAN, etc.)
+PERSONAL_INFO_PATTERNS = [
+    r"\bpan\s*(card)?\b",
+    r"\baadhaar\b",
+    r"\baccount\s+number\b",
+    r"\botp\b",
+    r"\bemail\s*(address)?\b",
+    r"\bphone\s*(number)?\b",
+    r"\bmobile\s*(number)?\b",
+    r"\bpassword\b",
+    r"\b(my|user)\s+(pan|aadhaar|account|email|phone)\b",
+    r"\b\d{10}\b",  # 10 digits (phone)
+    r"\b[A-Z]{5}[0-9]{4}[A-Z]\b",  # PAN-like
+    r"\bwhat\s+is\s+my\s+name\b",
+    r"\bmy\s+name\s+is\b",
+    r"\bwhat\s+is\s+my\s+address\b",
+    r"\bmy\s+address\b",
+    r"\bwhat\s+is\s+address\b",
+    r"\baddress\b",
+]
+PERSONAL_INFO_REGEX = re.compile("|".join(PERSONAL_INFO_PATTERNS), re.IGNORECASE)
+
+PERSONAL_INFO_MESSAGE = (
+    "This chatbot only answers factual scheme details from its corpus. "
+    "It does not handle personal information (e.g. PAN, Aadhaar, account details). "
+    "Please do not share such details."
+)
+
 # AMCs we don't have in corpus (we only have 5 HDFC schemes)
 OTHER_AMCS = re.compile(
     r"\b(axis|icici|sbi|uti|kotak|mirae|ppfas|quant|nippon)\s+",
@@ -74,7 +102,23 @@ def answer_from_corpus(query: str, root: Path) -> dict[str, str]:
     }
     q = (query or "").strip().lower()
 
-    # 1) Refusal: advisory / comparison questions
+    # 1) Personal information / PII questions (out of scope)
+    if PERSONAL_INFO_REGEX.search(q):
+        try:
+            with open(path, encoding="utf-8") as f:
+                meta = json.load(f).get("meta", {})
+            lu = meta.get("last_scraped", "")
+        except Exception:
+            lu = ""
+        msg = PERSONAL_INFO_MESSAGE
+        if lu:
+            msg = msg.rstrip()
+            if not msg.endswith("."):
+                msg += "."
+            msg += f" Last updated from sources: {lu}."
+        return {"answer": msg, "citation_url": APPROVED_URLS[0], "last_updated": lu}
+
+    # 2) Refusal: advisory / comparison questions
     if REFUSAL_REGEX.search(q):
         try:
             with open(path, encoding="utf-8") as f:
@@ -90,7 +134,7 @@ def answer_from_corpus(query: str, root: Path) -> dict[str, str]:
             msg += f" Last updated from sources: {lu}."
         return {"answer": msg, "citation_url": APPROVED_URLS[0], "last_updated": lu}
 
-    # 2) Scheme not in corpus (other AMCs)
+    # 3) Scheme not in corpus (other AMCs)
     if OTHER_AMCS.search(q):
         return {
             "answer": "This scheme is not available in our current sources. We only have factual details for 5 HDFC schemes from INDMoney (Large Cap, Flexi Cap, Mid Cap, Small Cap, Nifty 100 Index).",

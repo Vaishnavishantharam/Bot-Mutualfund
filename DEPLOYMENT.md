@@ -1,11 +1,11 @@
 # How to deploy the chatbot
 
-You deploy **two parts**:
+**Lighter stack (recommended):** Playwright for scraping, ChromaDB or Pinecone for vectors, OpenAI for embeddings. No heavy local models — easy to run on Vercel.
 
-1. **Backend** (FastAPI + data) → Railway, Render, or Fly.io  
-2. **Frontend + API proxy** → Vercel (with `BACKEND_URL` pointing to the backend)
+You can either:
 
-Then the scheduler (GitHub Actions) can keep `data/schemes.json` updated; you redeploy the backend when you want it to use new data.
+- **Vercel-only:** Frontend + `api/query.py` (serverless) using Pinecone + Groq. Set `VECTOR_STORE_TYPE=pinecone`, `OPENAI_API_KEY`, `GROQ_API_KEY`, `PINECONE_*`. Build the Pinecone index via GitHub Actions or locally, then deploy. Remove or don’t use `api/query.js` so `api/query.py` handles `/api/query`.
+- **Backend + Vercel:** Backend (Railway/Render) with ChromaDB or Pinecone; Vercel frontend with `BACKEND_URL` pointing to that backend.
 
 ---
 
@@ -14,8 +14,8 @@ Then the scheduler (GitHub Actions) can keep `data/schemes.json` updated; you re
 The backend needs:
 
 - `data/schemes.json`
-- `data/vector_store/` (FAISS index + metadata)
-- `GROQ_API_KEY` in the environment
+- Vector store: **ChromaDB** (local `data/chroma`) or **Pinecone** (hosted). Run `python -m phase_2.indexer` to build.
+- `OPENAI_API_KEY` and `GROQ_API_KEY` in the environment
 
 **Option A: Railway**
 
@@ -57,9 +57,10 @@ The backend needs:
 
 **If you don’t commit the vector store**
 
-- Backend will fail when Phase 3 tries to load FAISS until you either:
-  - Commit `data/vector_store/` (run `python -m phase_2.indexer` locally, then commit and push), or
-  - Use a start script that runs `python -m phase_2.indexer` once before starting uvicorn (slower cold start).
+- **ChromaDB:** Run `python -m phase_2.indexer` locally (needs `OPENAI_API_KEY`), then commit `data/chroma/` and push, or run the indexer in a build step before uvicorn.
+- **Pinecone:** Run `python -m phase_2.indexer` with `VECTOR_STORE_TYPE=pinecone` and `PINECONE_*` set (e.g. in GitHub Actions); no need to commit vectors.
+
+**Render free tier:** With the lighter stack (ChromaDB/Pinecone + API embeddings) there is no long model load; first request should complete within the request timeout.
 
 ---
 
@@ -93,8 +94,8 @@ The backend needs:
 
 | Step | Where | What to do |
 |------|--------|------------|
-| 1 | Repo | Commit `data/schemes.json` (and optionally `data/vector_store/` or document a build that runs Phase 2). |
-| 2 | Railway or Render | Create project from repo, set build/start and `GROQ_API_KEY`, deploy. |
+| 1 | Repo | Commit `data/schemes.json`. Run Phase 2 (ChromaDB or Pinecone), then commit `data/chroma/` if using ChromaDB, or use Pinecone (no commit). |
+| 2 | Railway or Render | Create project from repo, set build/start, `OPENAI_API_KEY`, `GROQ_API_KEY`, deploy. |
 | 3 | Railway/Render | Copy the backend URL (e.g. `https://xxx.railway.app`). |
 | 4 | Vercel | Import same repo, set `BACKEND_URL` = backend URL, deploy. |
 | 5 | Browser | Open Vercel URL and test the chat. |

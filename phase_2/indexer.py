@@ -1,18 +1,16 @@
 """
-Phase 2: Load data/schemes.json, build evidence chunks, embed with sentence-transformers,
-and persist with FAISS (no sqlite). Supports full rebuild. Exposes query_store() for Phase 3.
+Phase 2: Load data/schemes.json, build evidence chunks, embed via OpenAI API,
+store in ChromaDB (or Pinecone). Lightweight for Vercel. Exposes query_store() for Phase 3.
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import logging
-import pickle
+import os
 import sys
 from pathlib import Path
 from typing import Any, List, Optional
-
-import numpy as np
 
 from . import config as cfg
 
@@ -23,9 +21,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# FAISS index and metadata filenames under VECTOR_STORE_PATH
-FAISS_INDEX_FILE = "index.faiss"
-METADATA_FILE = "metadata.pkl"
+COLLECTION_NAME = "mutual_fund_evidence"
 
 
 def get_project_root() -> Path:
@@ -95,93 +91,70 @@ def build_chunks(data: dict[str, Any]) -> tuple[List[str], List[dict[str, str]],
     return documents, metadatas, ids
 
 
-def get_vector_store_path() -> Path:
-    """Resolve vector store path (project root / VECTOR_STORE_PATH)."""
-    return get_project_root() / cfg.VECTOR_STORE_PATH
+def _get_chroma_client():
+    """Lazy ChromaDB client with OpenAI embedding function."""
+    import chromadb
+    from chromadb.utils import embedding_functions
+
+    root = get_project_root()
+    persist_path = root / cfg.CHROMA_PERSIST_PATH
+    persist_path.mkdir(parents=True, exist_ok=True)
+
+    if not os.environ.get("OPENAI_API_KEY"):
+        raise ValueError("OPENAI_API_KEY is required for ChromaDB embeddings")
+
+    ef = embedding_functions.OpenAIEmbeddingFunction(
+        api_key_env_var="OPENAI_API_KEY",
+        model_name=cfg.OPENAI_EMBEDDING_MODEL,
+    )
+    client = chromadb.PersistentClient(path=str(persist_path))
+    return client, ef
 
 
-def _normalize_l2(x: np.ndarray) -> np.ndarray:
-    """L2-normalize rows. For cosine similarity with FAISS IndexFlatIP."""
-    norms = np.linalg.norm(x, axis=1, keepdims=True)
-    norms = np.where(norms == 0, 1.0, norms)
-    return x.astype(np.float32) / norms
-
-
-def rebuild_index(schemes_path: Optional[Path] = None) -> int:
-    """
-    Load schemes.json, embed evidence chunks, build FAISS index, save index + metadata.
-    Returns number of chunks indexed.
-    """
-    import faiss
-    from sentence_transformers import SentenceTransformer
-
+def _chroma_rebuild(schemes_path: Optional[Path] = None) -> int:
+    """Rebuild ChromaDB collection from schemes.json."""
     data = load_schemes_json(schemes_path)
     documents, metadatas, ids = build_chunks(data)
     if not documents:
         logger.warning("No evidence chunks to index")
         return 0
 
-    vector_store_path = get_vector_store_path()
-    vector_store_path.mkdir(parents=True, exist_ok=True)
-
-    logger.info("Loading embedding model: %s", cfg.EMBEDDING_MODEL)
-    model = SentenceTransformer(cfg.EMBEDDING_MODEL)
-    logger.info("Embedding %d chunks...", len(documents))
-    embeddings = model.encode(documents, show_progress_bar=True)
-    embeddings = np.asarray(embeddings, dtype=np.float32)
-    embeddings = _normalize_l2(embeddings)
-    dim = embeddings.shape[1]
-
-    index = faiss.IndexFlatIP(dim)
-    index.add(embeddings)
-    index_path = vector_store_path / FAISS_INDEX_FILE
-    meta_path = vector_store_path / METADATA_FILE
-    faiss.write_index(index, str(index_path))
-    with open(meta_path, "wb") as f:
-        pickle.dump({"documents": documents, "metadatas": metadatas, "ids": ids}, f)
-    logger.info("Indexed %d chunks to %s", len(ids), vector_store_path)
+    client, ef = _get_chroma_client()
+    try:
+        client.delete_collection(COLLECTION_NAME)
+    except Exception:
+        pass
+    collection = client.create_collection(
+        name=COLLECTION_NAME,
+        embedding_function=ef,
+        metadata={"description": "HDFC scheme evidence chunks"},
+    )
+    collection.add(documents=documents, metadatas=metadatas, ids=ids)
+    logger.info("ChromaDB indexed %d chunks", len(ids))
     return len(ids)
 
 
-def query_store(
-    query: str,
-    top_k: Optional[int] = None,
-) -> List[dict[str, Any]]:
-    """
-    Embed query and return top-k chunks with metadata (for Phase 3).
-    Returns list of dicts with keys: evidence_text, source_url, scheme_name, field_name, scraped_at.
-    """
-    import faiss
-    from sentence_transformers import SentenceTransformer
-
+def _chroma_query_store(query: str, top_k: Optional[int] = None) -> List[dict[str, Any]]:
+    """Query ChromaDB and return chunks in Phase 3 format."""
     k = top_k if top_k is not None else cfg.TOP_K
-    vector_store_path = get_vector_store_path()
-    index_path = vector_store_path / FAISS_INDEX_FILE
-    meta_path = vector_store_path / METADATA_FILE
-    if not index_path.exists() or not meta_path.exists():
+    client, ef = _get_chroma_client()
+    try:
+        collection = client.get_collection(name=COLLECTION_NAME, embedding_function=ef)
+    except Exception as e:
         raise FileNotFoundError(
-            f"Vector store not found at {vector_store_path}. Run python -m phase_2.indexer first."
+            f"ChromaDB collection not found. Run python -m phase_2.indexer first. {e}"
         )
 
-    model = SentenceTransformer(cfg.EMBEDDING_MODEL)
-    q = model.encode([query])
-    q = np.asarray(q, dtype=np.float32)
-    q = _normalize_l2(q)
-
-    index = faiss.read_index(str(index_path))
-    with open(meta_path, "rb") as f:
-        stored = pickle.load(f)
-    documents = stored["documents"]
-    metadatas = stored["metadatas"]
-
-    scores, indices = index.search(q, min(k, index.ntotal))
+    results = collection.query(query_texts=[query], n_results=min(k, collection.count()))
     out: List[dict[str, Any]] = []
-    for idx in indices[0]:
-        if idx < 0:
-            continue
-        meta = metadatas[idx] if idx < len(metadatas) else {}
+    if not results or not results["documents"] or not results["documents"][0]:
+        return out
+    docs = results["documents"][0]
+    metas = results["metadatas"][0] if results.get("metadatas") else [{}] * len(docs)
+    for i, (doc, meta) in enumerate(zip(docs, metas)):
+        meta = meta or {}
         out.append({
-            "evidence_text": documents[idx] if idx < len(documents) else "",
+            "evidence_text": doc or "",
             "source_url": meta.get("source_url", ""),
             "scheme_name": meta.get("scheme_name", ""),
             "field_name": meta.get("field_name", ""),
@@ -190,11 +163,117 @@ def query_store(
     return out
 
 
+def _pinecone_rebuild(schemes_path: Optional[Path] = None) -> int:
+    """Rebuild Pinecone index from schemes.json."""
+    try:
+        from pinecone import Pinecone, ServerlessSpec
+    except ImportError:
+        raise ImportError("pip install pinecone-client for VECTOR_STORE_TYPE=pinecone")
+
+    if not cfg.PINECONE_API_KEY:
+        raise ValueError("PINECONE_API_KEY is required for Pinecone")
+
+    data = load_schemes_json(schemes_path)
+    documents, metadatas, ids = build_chunks(data)
+    if not documents:
+        logger.warning("No evidence chunks to index")
+        return 0
+
+    from openai import OpenAI
+    client_openai = OpenAI()
+    # Batch embed (OpenAI preserves order)
+    vectors = []
+    batch_size_embed = 100
+    for i in range(0, len(documents), batch_size_embed):
+        chunk = documents[i : i + batch_size_embed]
+        embeds = client_openai.embeddings.create(
+            input=chunk,
+            model=cfg.OPENAI_EMBEDDING_MODEL,
+        )
+        vectors.extend(e.embedding for e in embeds.data)
+
+    pc = Pinecone(api_key=cfg.PINECONE_API_KEY)
+    if cfg.PINECONE_INDEX_NAME not in [i.name for i in pc.list_indexes()]:
+        pc.create_index(
+            name=cfg.PINECONE_INDEX_NAME,
+            dimension=len(vectors[0]),
+            metric="cosine",
+            spec=ServerlessSpec(cloud="aws", region=cfg.PINECONE_ENV or "us-east-1"),
+        )
+    index = pc.Index(cfg.PINECONE_INDEX_NAME)
+    # Upsert in batches; metadata must include "text" for retrieval
+    batch_size = 100
+    for i in range(0, len(ids), batch_size):
+        batch = []
+        for j in range(i, min(i + batch_size, len(ids))):
+            meta = dict(metadatas[j])
+            meta["text"] = documents[j][:40000]  # Pinecone metadata size limit
+            batch.append({
+                "id": ids[j],
+                "values": vectors[j],
+                "metadata": meta,
+            })
+        index.upsert(vectors=batch)
+    logger.info("Pinecone indexed %d chunks", len(ids))
+    return len(ids)
+
+
+def _pinecone_query_store(query: str, top_k: Optional[int] = None) -> List[dict[str, Any]]:
+    """Query Pinecone and return chunks in Phase 3 format."""
+    try:
+        from pinecone import Pinecone
+        from openai import OpenAI
+    except ImportError:
+        raise ImportError("pip install pinecone-client openai for Pinecone")
+
+    k = top_k if top_k is not None else cfg.TOP_K
+    openai_client = OpenAI()
+    q_embed = openai_client.embeddings.create(
+        input=[query],
+        model=cfg.OPENAI_EMBEDDING_MODEL,
+    ).data[0].embedding
+
+    pc = Pinecone(api_key=cfg.PINECONE_API_KEY)
+    index = pc.Index(cfg.PINECONE_INDEX_NAME)
+    res = index.query(vector=q_embed, top_k=k, include_metadata=True)
+    out: List[dict[str, Any]] = []
+    for match in (res.matches or []):
+        meta = (match.metadata or {})
+        out.append({
+            "evidence_text": meta.get("text", ""),
+            "source_url": meta.get("source_url", ""),
+            "scheme_name": meta.get("scheme_name", ""),
+            "field_name": meta.get("field_name", ""),
+            "scraped_at": meta.get("scraped_at", ""),
+        })
+    return out
+
+
+def rebuild_index(schemes_path: Optional[Path] = None) -> int:
+    """Rebuild vector store (ChromaDB or Pinecone) from schemes.json. Returns chunk count."""
+    if cfg.VECTOR_STORE_TYPE.lower() == "pinecone":
+        return _pinecone_rebuild(schemes_path)
+    return _chroma_rebuild(schemes_path)
+
+
+def query_store(
+    query: str,
+    top_k: Optional[int] = None,
+) -> List[dict[str, Any]]:
+    """
+    Embed query and return top-k chunks with metadata (for Phase 3).
+    Returns list of dicts: evidence_text, source_url, scheme_name, field_name, scraped_at.
+    """
+    if cfg.VECTOR_STORE_TYPE.lower() == "pinecone":
+        return _pinecone_query_store(query, top_k)
+    return _chroma_query_store(query, top_k)
+
+
 def main() -> None:
     """CLI: rebuild the vector store from data/schemes.json."""
     try:
         n = rebuild_index()
-        logger.info("Done. %d chunks indexed.", n)
+        logger.info("Done. %d chunks indexed (%s).", n, cfg.VECTOR_STORE_TYPE)
     except Exception as e:
         logger.exception("Indexing failed: %s", e)
         raise

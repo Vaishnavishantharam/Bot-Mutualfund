@@ -48,8 +48,7 @@
     }
     wrap.appendChild(avatar);
     wrap.appendChild(bubble);
-    chatMessages.appendChild(wrap);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    if (chatMessages) { chatMessages.appendChild(wrap); chatMessages.scrollTop = chatMessages.scrollHeight; }
   }
 
   function escapeHtml(s) {
@@ -63,8 +62,7 @@
     wrap.className = 'message assistant';
     wrap.id = 'typing-indicator';
     wrap.innerHTML = '<div class="message-avatar">💰</div><div class="message-bubble message-typing">Thinking…</div>';
-    chatMessages.appendChild(wrap);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    if (chatMessages) { chatMessages.appendChild(wrap); chatMessages.scrollTop = chatMessages.scrollHeight; }
   }
 
   function hideTyping() {
@@ -74,15 +72,15 @@
 
   function setLoading(loading) {
     isLoading = loading;
-    welcomeSend.disabled = loading || !serviceReady;
-    chatSend.disabled = loading || !serviceReady;
+    if (welcomeSend) welcomeSend.disabled = loading || !serviceReady;
+    if (chatSend) chatSend.disabled = loading || !serviceReady;
   }
 
   function setServiceReady(ready) {
     serviceReady = ready;
     if (startingUpBanner) startingUpBanner.style.display = ready ? 'none' : 'block';
-    welcomeSend.disabled = !ready || isLoading;
-    chatSend.disabled = !ready || isLoading;
+    if (welcomeSend) welcomeSend.disabled = !ready || isLoading;
+    if (chatSend) chatSend.disabled = !ready || isLoading;
     if (welcomeInput) welcomeInput.disabled = !ready;
     if (chatInput) chatInput.disabled = !ready;
   }
@@ -168,44 +166,53 @@
       });
   }
 
-  welcomeSend.addEventListener('click', function () {
-    var q = welcomeInput.value.trim();
-    if (q) {
-      showScreen('chat');
-      sendQuery(q);
-    }
-  });
-  welcomeInput.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') {
-      var q = welcomeInput.value.trim();
-      if (q) {
-        showScreen('chat');
-        sendQuery(q);
+  // Show welcome screen first so user never sees a blank page if something below throws
+  showScreen('welcome');
+
+  if (welcomeSend) {
+    welcomeSend.addEventListener('click', function () {
+      var q = welcomeInput ? welcomeInput.value.trim() : '';
+      if (q) { showScreen('chat'); sendQuery(q); }
+    });
+  }
+  if (welcomeInput) {
+    welcomeInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        var q = welcomeInput.value.trim();
+        if (q) { showScreen('chat'); sendQuery(q); }
       }
-    }
-  });
+    });
+  }
 
-  chatSend.addEventListener('click', function () {
-    var q = chatInput.value.trim();
-    if (q) sendQuery(q);
-  });
-  chatInput.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') {
-      var q = chatInput.value.trim();
+  if (chatSend) {
+    chatSend.addEventListener('click', function () {
+      var q = chatInput ? chatInput.value.trim() : '';
       if (q) sendQuery(q);
-    }
-  });
+    });
+  }
+  if (chatInput) {
+    chatInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        var q = chatInput.value.trim();
+        if (q) sendQuery(q);
+      }
+    });
+  }
 
-  backToWelcome.addEventListener('click', function (e) {
-    e.preventDefault();
-    showScreen('welcome');
-  });
+  if (backToWelcome) {
+    backToWelcome.addEventListener('click', function (e) {
+      e.preventDefault();
+      showScreen('welcome');
+    });
+  }
 
-  navRefresh.addEventListener('click', function (e) {
-    e.preventDefault();
-    chatMessages.innerHTML = '';
-    showScreen('chat');
-  });
+  if (navRefresh) {
+    navRefresh.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (chatMessages) chatMessages.innerHTML = '';
+      showScreen('chat');
+    });
+  }
 
   document.querySelectorAll('.nav-item[data-screen]').forEach(function (el) {
     el.addEventListener('click', function (e) {
@@ -242,9 +249,10 @@
   loadLastUpdated();
 
   // Wait for backend pipeline to be ready (avoids 503 / timeout on first query)
-  setServiceReady(false);
-  pollReady();
-
-  // Start on welcome
-  showScreen('welcome');
+  try {
+    setServiceReady(false);
+    pollReady();
+  } catch (e) {
+    setServiceReady(true);
+  }
 })();

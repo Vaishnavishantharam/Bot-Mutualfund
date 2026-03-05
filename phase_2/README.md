@@ -4,16 +4,16 @@ Embed evidence from `data/schemes.json` and persist in Chroma for semantic retri
 
 ## Contents
 
-- `config.py` — schemes path, embedding model (sentence-transformers), vector store path, TOP_K.
-- `indexer.py` — load schemes.json, build evidence chunks, embed with sentence-transformers, upsert into Chroma; exposes `query_store()` for Phase 3.
-- Vector store is written to `data/vector_store/` (Chroma persistent client).
+- `config.py` — schemes path, OpenAI embedding model, vector store type/path, TOP_K.
+- `indexer.py` — load schemes.json, build evidence chunks, embed with OpenAI API, upsert into Chroma (or Pinecone); exposes `query_store()` for Phase 3.
+- Vector store is written to `data/chroma/` by default (or Pinecone when `VECTOR_STORE_TYPE=pinecone`).
 
 ## Run
 
 From project root (after Phase 1 has produced `data/schemes.json`):
 
 ```bash
-pip install sentence-transformers chromadb  # or use project requirements.txt
+pip install -r requirements.txt  # installs chromadb, openai, pinecone-client, etc.
 python -m phase_2.indexer
 ```
 

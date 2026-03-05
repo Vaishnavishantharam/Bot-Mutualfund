@@ -22,12 +22,26 @@ from phase_3.query_pipeline import run_pipeline
 # --- Fixtures ---
 
 def _vector_store_exists() -> bool:
-    return (_project_root / "data" / "vector_store" / "index.faiss").exists()
+    # ChromaDB persist path or legacy FAISS
+    chroma = _project_root / "data" / "chroma"
+    faiss = _project_root / "data" / "vector_store" / "index.faiss"
+    return chroma.exists() or faiss.exists()
+
+
+def _phase2_available() -> bool:
+    """True if Phase 2 (vector store + chromadb) can be used for retrieval."""
+    if not _vector_store_exists():
+        return False
+    try:
+        import chromadb  # noqa: F401
+        return True
+    except ImportError:
+        return False
 
 
 requires_vector_store = pytest.mark.skipif(
-    not _vector_store_exists(),
-    reason="Phase 2 vector store not found. Run: python -m phase_2.indexer",
+    not _phase2_available(),
+    reason="Phase 2 vector store not found or chromadb not installed. Run: pip install chromadb && python -m phase_2.indexer",
 )
 
 

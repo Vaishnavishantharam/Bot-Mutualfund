@@ -15,6 +15,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req.body || {}),
+      signal: AbortSignal.timeout(90000),  // 90s for backend cold start
     });
     const data = await response.json().catch(() => ({}));
     res.status(response.status).json(data);

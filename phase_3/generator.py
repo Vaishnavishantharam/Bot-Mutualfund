@@ -60,10 +60,12 @@ def generate_from_chunks(
     citation_url = source_url of the top chunk (correct source).
     """
     if not chunks:
+        last_updated_fallback = _fallback_last_updated()
         return {
-            "answer": "This information is not available in our corpus. We only have factual details for the 5 HDFC schemes from INDMoney.",
+            "answer": "This information is not available in our corpus. We only have factual details for the 5 HDFC schemes from INDMoney."
+            + (f" Last updated from sources: {last_updated_fallback}." if last_updated_fallback else ""),
             "citation_url": cfg.APPROVED_URLS[0],
-            "last_updated": "",
+            "last_updated": last_updated_fallback,
         }
     top = chunks[0]
     citation_url = top.get("source_url") or cfg.APPROVED_URLS[0]

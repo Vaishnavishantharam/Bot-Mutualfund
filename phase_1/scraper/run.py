@@ -42,7 +42,7 @@ def _url_to_id(url: str) -> str:
     return match.group(1) if match else ""
 
 
-def run(from_dir: Optional[str] = None) -> None:
+def run(from_dir: Optional[str] = None, use_playwright: bool = False) -> None:
     project_root = get_project_root()
     output_file = project_root / OUTPUT_PATH
     output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -65,7 +65,7 @@ def run(from_dir: Optional[str] = None) -> None:
                 else:
                     logger.warning("No HTML file %s for %s; skipping.", html_file.name, url)
             else:
-                scheme, ev = scrape_url(url, session=session)
+                scheme, ev = scrape_url(url, session=session, use_playwright=use_playwright)
                 schemes.append(scheme)
                 evidence.extend(ev)
                 logger.info("Scraped: %s", scheme.get("scheme_name", url))
@@ -96,5 +96,10 @@ if __name__ == "__main__":
         default=None,
         help="Directory containing HTML files named by URL id (e.g. 2989.html). Use when live requests get 403.",
     )
+    parser.add_argument(
+        "--use-playwright",
+        action="store_true",
+        help="Use Playwright (headless browser) to fetch pages. Use when site blocks requests or needs JS.",
+    )
     args = parser.parse_args()
-    run(from_dir=args.from_dir)
+    run(from_dir=args.from_dir, use_playwright=args.use_playwright)

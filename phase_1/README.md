@@ -16,7 +16,15 @@ All Phase 1 code lives only in this folder. Scrape the 5 INDMoney HDFC scheme pa
 python -m phase_1.scraper.run
 ```
 
-If INDMoney returns 403 or blocks requests, use local HTML files:
+If INDMoney returns 403 or blocks requests (e.g. Cloudflare), use **Playwright** (headless browser):
+
+```bash
+python -m phase_1.scraper.run --use-playwright
+```
+
+Install Playwright’s Chromium once: `playwright install chromium`
+
+Alternatively, use local HTML files:
 
 **From local HTML files** (files named by URL id: `2989.html`, `3184.html`, `3097.html`, `3580.html`, `1040567.html`):
 
@@ -29,3 +37,4 @@ Save pages manually (e.g. “Save as” in browser) or with Playwright into the 
 ## Dependencies
 
 - `requests`, `beautifulsoup4` (see project root `requirements.txt`).
+- For `--use-playwright`: `playwright`; run `playwright install chromium` once.

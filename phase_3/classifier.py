@@ -12,6 +12,8 @@ QueryLabel = Literal["factual", "refusal", "personal_info"]
 REFUSAL_PATTERNS = [
     r"\bshould\s+i\s+invest\b",
     r"\bwhich\s+(is\s+)?best\b",
+    r"\bwhich\s+fund\s+is\s+best\b",
+    r"\bwhich\s+.*\bbest\s+(for\s+)?(me|investing)?\b",
     r"\bcompare\s+(returns?|funds?|performance)\b",
     r"\bbuy\s+or\s+sell\b",
     r"\b(should|can)\s+i\s+(buy|sell)\b",
@@ -54,6 +56,13 @@ PII_PATTERNS = [
     r"\b(my|user)\s+(pan|aadhaar|account|email|phone)\b",
     r"\b\d{10}\b",  # 10 digits (phone)
     r"\b[A-Z]{5}[0-9]{4}[A-Z]\b",  # PAN-like
+    # Generic personal questions (name/address)
+    r"\bwhat\s+is\s+my\s+name\b",
+    r"\bmy\s+name\s+is\b",
+    r"\bwhat\s+is\s+my\s+address\b",
+    r"\bmy\s+address\b",
+    r"\bwhat\s+is\s+address\b",
+    r"\baddress\b",
 ]
 PII_REGEX = re.compile("|".join(PII_PATTERNS), re.IGNORECASE)
 

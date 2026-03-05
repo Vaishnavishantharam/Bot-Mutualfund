@@ -27,11 +27,17 @@ DEFAULT_HEADERS = {
 
 
 def get_page_html(url: str, session: Optional[requests.Session] = None) -> str:
-    """Fetch page HTML. Uses session if provided."""
+    """Fetch page HTML via requests. Uses session if provided."""
     sess = session or requests.Session()
     resp = sess.get(url, headers=DEFAULT_HEADERS, timeout=30)
     resp.raise_for_status()
     return resp.text
+
+
+def get_page_html_with_playwright(url: str) -> str:
+    """Fetch page HTML via Playwright (for JS-rendered or strict sites)."""
+    from .browser_fetch import get_page_html_playwright
+    return get_page_html_playwright(url)
 
 
 def _normalize_whitespace(s: str) -> str:
@@ -80,6 +86,29 @@ def _extract_value_from_table(soup: BeautifulSoup, label: str) -> Optional[str]:
     return None
 
 
+def _is_valid_value_for_label(label: str, value: str) -> bool:
+    """Reject values that are clearly wrong (junk from adjacent divs/sections)."""
+    if not value or len(value) > 300:
+        return False
+    v = value.strip().lower()
+    # AUM: reject section text (e.g. "All changes are between Nov'25 and Jan'26")
+    if "aum" in label.lower():
+        if "all changes" in v or ("between" in v and ("nov'" in v or "jan'" in v or "dec'" in v)):
+            return False
+        if len(value) > 30:
+            return False
+    # Fund Manager: short names, not prose or UI text
+    if "fund manager" in label.lower():
+        if len(value) > 120:
+            return False
+        if any(x in v for x in ("learn more", "since 20", "aum change", "adopts a", "bottom-up", "stock-picking")):
+            return False
+    # Risk: allow "Very High Risk" or "Ranked X out of Y" but not huge blocks
+    if "risk" in label.lower() and len(value) > 80:
+        return False
+    return True
+
+
 def _extract_label_value_pairs_from_text(text: str) -> dict[str, str]:
     """Fallback: find 'Label | Value' or 'Label: Value' or 'Label\\nValue' in page text."""
     pairs: dict[str, str] = {}
@@ -104,10 +133,51 @@ def _extract_label_value_pairs_from_text(text: str) -> dict[str, str]:
     return pairs
 
 
+def _extract_from_faq_and_about(text: str) -> dict[str, str]:
+    """Extract field values from FAQ/About prose (e.g. 'expense ratio is 0.98%', 'AUM of ₹39621 Cr')."""
+    out: dict[str, str] = {}
+    text = text.replace("\n", " ")
+    # Expense ratio is X% or expense ratio of X%
+    m = re.search(r"expense ratio (?:is|of)\s*([\d.]+%?)", text, re.IGNORECASE)
+    if m:
+        out["Expense ratio"] = m.group(1).strip()
+    # Exit load is X% or exit load of X
+    m = re.search(r"exit load (?:is|of)\s*([^.]+?)(?:\.|$)", text, re.IGNORECASE)
+    if m:
+        out["Exit Load"] = _normalize_whitespace(m.group(1))
+    # AUM of ₹X Cr or AUM is ₹X Cr
+    m = re.search(r"AUM (?:of|is)\s*(?:₹\s*)?([\d.,]+\s*[Kk]?\s*[Cc]r)", text, re.IGNORECASE)
+    if m:
+        out["AUM"] = _normalize_whitespace(m.group(1))
+    # Fund managers are X, Y / fund manager is X
+    m = re.search(r"fund managers? (?:are|is)\s+([^.]+?)(?:\.|\n|$)", text, re.IGNORECASE)
+    if m:
+        out["Fund Manager"] = _normalize_whitespace(m.group(1))
+    # Min Lumpsum/SIP or ₹100/₹100
+    m = re.search(r"(?:Min(?:imum)?\s*Lumpsum/SIP|Min\s*SIP)[^₹]*(₹\s*\d+(?:,\d+)?/?\s*₹?\s*\d+(?:,\d+)?)", text, re.IGNORECASE)
+    if not m:
+        m = re.search(r"(₹\s*\d+(?:,\d+)?\s*/\s*₹\s*\d+(?:,\d+)?)", text)
+    if m:
+        out["Min Lumpsum/SIP"] = _normalize_whitespace(m.group(1))
+    # Inception Date / Inception date
+    m = re.search(r"inception date[:\s]+(\d{1,2}\s+\w+\s*,?\s*\d{4})", text, re.IGNORECASE)
+    if m:
+        out["Inception Date"] = _normalize_whitespace(m.group(1))
+    # Lock-in / No Lock-in
+    m = re.search(r"lock[- ]?in[:\s]+([^.]+?)(?:\.|$)", text, re.IGNORECASE)
+    if m:
+        out["Lock In"] = _normalize_whitespace(m.group(1))
+    # Benchmark (e.g. Nifty 100 TR INR)
+    m = re.search(r"benchmark[:\s]+([A-Za-z0-9\s]+?)(?:\n|\.|AUM|$)", text, re.IGNORECASE)
+    if m:
+        out["Benchmark"] = _normalize_whitespace(m.group(1))[:80]
+    return out
+
+
 def _extract_from_overview_section(soup: BeautifulSoup) -> dict[str, str]:
     """Extract label -> value from Fund Overview / Key Facts section (tables or structured blocks)."""
     label_to_value: dict[str, str] = {}
-    # Strategy 1: tables
+    # Strategy 1: tables (including div-based "tables" with role or grid)
     for table in soup.find_all("table"):
         for tr in table.find_all("tr"):
             cells = tr.find_all(["td", "th"])
@@ -117,12 +187,34 @@ def _extract_from_overview_section(soup: BeautifulSoup) -> dict[str, str]:
                 if first and second:
                     for label in fm.LABEL_TO_FIELDS:
                         if label and label.lower() in first.lower():
-                            label_to_value[label] = second
+                            if _is_valid_value_for_label(label, second):
+                                label_to_value[label] = second
                             break
-    # Strategy 2: if we have little, try definition lists or divs
-    if not label_to_value:
-        full_text = soup.get_text(separator="\n")
-        label_to_value = _extract_label_value_pairs_from_text(full_text)
+    # Strategy 1b: divs that look like rows (e.g. two children: label + value). Only add if we don't have a better table value and value looks valid.
+    for div in soup.find_all("div", recursive=True):
+        parts = div.find_all(["div", "span", "p"], recursive=False)
+        if len(parts) >= 2:
+            first = _normalize_whitespace(parts[0].get_text())
+            second = _normalize_whitespace(parts[1].get_text())
+            if first and second and len(first) < 50 and len(second) < 150:
+                for label in fm.LABEL_TO_FIELDS:
+                    if label and label.lower() in first.lower():
+                        if label not in label_to_value and _is_valid_value_for_label(label, second):
+                            label_to_value[label] = second
+                        break
+    # Strategy 2: full-text label: value patterns
+    full_text = soup.get_text(separator="\n")
+    if len(label_to_value) < 5:
+        pairs = _extract_label_value_pairs_from_text(full_text)
+        for k, v in pairs.items():
+            if k not in label_to_value and _is_valid_value_for_label(k, v):
+                label_to_value[k] = v
+    # Strategy 3: FAQ/About prose
+    if len(label_to_value) < 8:
+        faq = _extract_from_faq_and_about(full_text)
+        for k, v in faq.items():
+            if k not in label_to_value and v and _is_valid_value_for_label(k, v):
+                label_to_value[k] = v
     return label_to_value
 
 
@@ -293,11 +385,18 @@ def parse_scheme_page(html: str, source_url: str) -> Tuple[dict[str, Any], List[
     return scheme, evidence
 
 
-def scrape_url(url: str, session: Optional[requests.Session] = None) -> Tuple[dict[str, Any], List[dict[str, Any]]]:
-    """Fetch URL and parse; returns (scheme, evidence)."""
+def scrape_url(
+    url: str,
+    session: Optional[requests.Session] = None,
+    use_playwright: bool = False,
+) -> Tuple[dict[str, Any], List[dict[str, Any]]]:
+    """Fetch URL and parse; returns (scheme, evidence). use_playwright=True for Playwright fetch."""
     if url not in APPROVED_URLS:
         raise ValueError(f"URL not in approved list: {url}")
-    html = get_page_html(url, session=session)
+    if use_playwright:
+        html = get_page_html_with_playwright(url)
+    else:
+        html = get_page_html(url, session=session)
     return parse_scheme_page(html, url)
 
 

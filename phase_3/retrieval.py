@@ -10,7 +10,7 @@ from typing import Any, List
 def retrieve(query: str, top_k: int = 5) -> List[dict[str, Any]]:
     """
     Embed query and return top-k chunks with evidence_text, source_url, scheme_name, field_name, scraped_at.
-    Uses phase_2.indexer.query_store (FAISS + sentence-transformers).
+    Uses phase_2.indexer.query_store (ChromaDB or Pinecone + OpenAI embeddings).
     """
     from phase_2.indexer import query_store
     from . import config as cfg
