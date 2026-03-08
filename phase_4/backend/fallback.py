@@ -73,6 +73,13 @@ OTHER_AMCS = re.compile(
     re.IGNORECASE
 )
 
+# Default/welcome when user doesn't ask about a specific scheme (e.g. "hi", "hello")
+WELCOME_ANSWER = (
+    "I have details for all 5 HDFC schemes in our corpus: "
+    "Large Cap, Flexi Cap, Mid Cap, Small Cap, and Nifty 100 Index Fund. "
+    "You can ask about expense ratio, exit load, minimum SIP, benchmark, AUM, risk level, fund manager, or inception date for any of these schemes."
+)
+
 
 def _find_scheme_by_url(schemes: list, url: str) -> dict | None:
     for s in schemes:
@@ -164,6 +171,14 @@ def answer_from_corpus(query: str, root: Path) -> dict[str, str]:
     # Detect which scheme (HDFC only); normalize informal "smallcap", "small cap"
     scheme_url = _detect_scheme_url(query)
     scheme = _find_scheme_by_url(schemes, scheme_url) if scheme_url else None
+
+    # No specific scheme mentioned (e.g. "hi", "hello") → show all schemes we have
+    if scheme_url is None and schemes:
+        ans = WELCOME_ANSWER
+        if last_updated:
+            ans += f" Last updated from sources: {last_updated}."
+        return {"answer": ans, "citation_url": APPROVED_URLS[0], "last_updated": last_updated}
+
     if not scheme and schemes:
         scheme = schemes[0]
         scheme_url = scheme.get("source_url", APPROVED_URLS[0])
