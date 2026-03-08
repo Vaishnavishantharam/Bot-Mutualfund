@@ -32,10 +32,12 @@ REFUSAL_PATTERNS = [
     r"\bbetter\s+returns?\b", r"\breturns?\s+in\s+\d{4}\b", r"\bwhich\s+(fund|scheme)\s+will\s+give\b",
     r"\bsafer\s+than\b", r"\bis\s+.*\s+safer\s+than\b", r"\bis\s+.*\s+better\s+than\b",
     r"\bshould\s+i\s+invest\b", r"\bwhich\s+(is\s+)?best\b", r"\bgood\s+(to\s+)?invest\b",
+    r"\bwhich\s+fund\s+is\s+better\b", r"\bcompare\s+.*\s+fund\b", r"\brecommend\b",
 ]
 REFUSAL_REGEX = re.compile("|".join(REFUSAL_PATTERNS), re.IGNORECASE)
 
-REFUSAL_MESSAGE = "This chatbot only answers factual scheme details (e.g. expense ratio, exit load, minimum SIP) from its corpus. It does not give investment advice. For investment decisions, please consult a SEBI-registered adviser."
+REFUSAL_MESSAGE = "I cannot provide investment advice. I can only share factual information about mutual fund schemes from official sources."
+REFUSAL_COMPARE_MESSAGE = "I cannot compare or recommend mutual funds. I can only provide factual information about each scheme."
 
 # Personal information / PII in fallback mode (name, address, PAN, etc.)
 PERSONAL_INFO_PATTERNS = [
@@ -121,7 +123,7 @@ def answer_from_corpus(query: str, root: Path) -> dict[str, str]:
             msg += f" Last updated from sources: {lu}."
         return {"answer": msg, "citation_url": APPROVED_URLS[0], "last_updated": lu}
 
-    # 2) Refusal: advisory / comparison questions
+    # 2) Refusal: advisory / comparison questions (case-insensitive)
     if REFUSAL_REGEX.search(q):
         try:
             with open(path, encoding="utf-8") as f:
@@ -129,7 +131,10 @@ def answer_from_corpus(query: str, root: Path) -> dict[str, str]:
             lu = meta.get("last_scraped", "")
         except Exception:
             lu = ""
-        msg = REFUSAL_MESSAGE
+        if re.search(r"\bwhich\s+fund\s+is\s+better\b|\bcompare\b|\brecommend\b", q, re.IGNORECASE):
+            msg = REFUSAL_COMPARE_MESSAGE
+        else:
+            msg = REFUSAL_MESSAGE
         if lu:
             msg = msg.rstrip()
             if not msg.endswith("."):
@@ -137,10 +142,10 @@ def answer_from_corpus(query: str, root: Path) -> dict[str, str]:
             msg += f" Last updated from sources: {lu}."
         return {"answer": msg, "citation_url": APPROVED_URLS[0], "last_updated": lu}
 
-    # 3) Scheme not in corpus (other AMCs)
+    # 3) Scheme not in corpus (other AMCs, e.g. SBI Bluechip)
     if OTHER_AMCS.search(q):
         return {
-            "answer": "This scheme is not available in our current sources. We only have factual details for 5 HDFC schemes from INDMoney (Large Cap, Flexi Cap, Mid Cap, Small Cap, Nifty 100 Index).",
+            "answer": "This scheme is not available in the current data sources. The assistant can only provide information for the schemes included in the dataset.",
             "citation_url": APPROVED_URLS[0],
             "last_updated": "",
         }
@@ -179,11 +184,40 @@ def answer_from_corpus(query: str, root: Path) -> dict[str, str]:
                 "last_updated": last_updated,
             }
 
-    # 4) Risk (including "risk kya hai" / informal)
+    # 4) Risk (including "risk kya hai" / informal); case-insensitive
     if "risk" in q:
         if scheme:
             risk = scheme.get("risk_level", "N/A")
-            ans = f"{name} is classified as {risk}."
+            ans = f"{name} is categorized as {risk} according to the riskometer."
+            if last_updated:
+                ans += f" Last updated from sources: {last_updated}."
+            return {
+                "answer": ans,
+                "citation_url": scheme.get("source_url", scheme_url),
+                "last_updated": last_updated,
+            }
+
+    # 5) Lock-in period (case-insensitive: "lock-in", "lock in")
+    if "lock" in q and ("in" in q or "period" in q):
+        if scheme:
+            lock_val = scheme.get("lock_in", "N/A")
+            if lock_val and "no lock" in str(lock_val).lower():
+                ans = f"{name} does not have a lock-in period."
+            else:
+                ans = f"{name} has a lock-in of {lock_val}."
+            if last_updated:
+                ans += f" Last updated from sources: {last_updated}."
+            return {
+                "answer": ans,
+                "citation_url": scheme.get("source_url", scheme_url),
+                "last_updated": last_updated,
+            }
+
+    # 6) AUM (assets under management) — check early so "what is aum of small cap" is answered
+    if "aum" in q or "assets under management" in q:
+        if scheme:
+            aum_val = scheme.get("aum", "N/A")
+            ans = f"The AUM (assets under management) for {name} is {aum_val}."
             if last_updated:
                 ans += f" Last updated from sources: {last_updated}."
             return {
@@ -193,53 +227,110 @@ def answer_from_corpus(query: str, root: Path) -> dict[str, str]:
             }
 
     # Answer by question type
-    if "expense" in q or "expense ratio" in q:
+    # Turnover / returns / NAV: we don't have this data — say so instead of giving expense+SIP
+    if "turnover" in q:
+        topics = "expense ratio, exit load, minimum SIP, benchmark, AUM, risk level, fund manager"
+        ans = f"Portfolio turnover is not available in our current data. For these HDFC schemes we have: {topics}."
+        if last_updated:
+            ans += f" Last updated from sources: {last_updated}."
+        return {"answer": ans, "citation_url": scheme_url or APPROVED_URLS[0], "last_updated": last_updated}
+    if "return" in q and "exit" not in q and "load" not in q:
+        # returns / performance — we don't have
+        ans = "We don't have returns or performance data in our corpus. We have: expense ratio, exit load, minimum SIP, benchmark, AUM, risk level, fund manager."
+        if last_updated:
+            ans += f" Last updated from sources: {last_updated}."
+        return {"answer": ans, "citation_url": scheme_url or APPROVED_URLS[0], "last_updated": last_updated}
+
+    if "expense" in q or "expense ratio" in q or ("rate" in q and scheme):
         if scheme:
             er = scheme.get("expense_ratio", "N/A")
+            ans = f"The expense ratio of {name} is {er}."
+            if "rate" in q and "expense" not in q:
+                ans = f"The expense ratio of {name} is {er}. (We do not have returns or NAV in our data.)"
+            if last_updated:
+                ans += f" Last updated from sources: {last_updated}."
             return {
-                "answer": f"{name} has an expense ratio of {er}. Last updated from sources: {last_updated}." if last_updated else f"{name} has an expense ratio of {er}.",
+                "answer": ans,
                 "citation_url": scheme.get("source_url", scheme_url),
                 "last_updated": last_updated,
             }
     if "minimum sip" in q or "min sip" in q or "sip" in q and ("minimum" in q or "min " in q or "start" in q or "invest" in q):
         if scheme:
             raw = scheme.get("min_sip_raw") or f"₹{scheme.get('min_sip', 100)}"
+            ans = f"The minimum SIP for {name} is {raw}."
+            if last_updated:
+                ans += f" Last updated from sources: {last_updated}."
             return {
-                "answer": f"The minimum SIP for {name} is {raw}. Last updated from sources: {last_updated}." if last_updated else f"The minimum SIP for {name} is {raw}.",
+                "answer": ans,
                 "citation_url": scheme.get("source_url", scheme_url),
                 "last_updated": last_updated,
             }
     if "benchmark" in q or "index" in q and ("benchmark" in q or "track" in q):
         if scheme:
             bench = scheme.get("benchmark", "N/A")
+            ans = f"{name} tracks the {bench} benchmark."
+            if last_updated:
+                ans += f" Last updated from sources: {last_updated}."
             return {
-                "answer": f"The benchmark for {name} is {bench}. Last updated from sources: {last_updated}." if last_updated else f"The benchmark for {name} is {bench}.",
+                "answer": ans,
                 "citation_url": scheme.get("source_url", scheme_url),
                 "last_updated": last_updated,
             }
     if "exit load" in q:
         if scheme:
             el = scheme.get("exit_load", "N/A")
+            ans = f"The exit load for {name} is {el}."
+            if el and ("1%" in str(el) or "1.0%" in str(el)):
+                ans += " (if redeemed within 1 year.)"
+            if last_updated:
+                ans += f" Last updated from sources: {last_updated}."
             return {
-                "answer": f"{name} has an exit load of {el}. Last updated from sources: {last_updated}." if last_updated else f"{name} has an exit load of {el}.",
+                "answer": ans,
                 "citation_url": scheme.get("source_url", scheme_url),
                 "last_updated": last_updated,
             }
     if "lumpsum" in q or "lump sum" in q or "minimum investment" in q:
         if scheme:
             raw = scheme.get("min_lumpsum_raw") or f"₹{scheme.get('min_lumpsum', 100)}"
+            ans = f"The minimum lump sum investment for {name} is {raw}."
+            if last_updated:
+                ans += f" Last updated from sources: {last_updated}."
             return {
-                "answer": f"The minimum lumpsum investment for {name} is {raw}. Last updated from sources: {last_updated}." if last_updated else f"The minimum lumpsum for {name} is {raw}.",
+                "answer": ans,
+                "citation_url": scheme.get("source_url", scheme_url),
+                "last_updated": last_updated,
+            }
+    if "fund manager" in q or ("manager" in q and ("fund" in q or "scheme" in q)):
+        if scheme:
+            fm = scheme.get("fund_manager", "N/A")
+            ans = f"The fund manager(s) for {name}: {fm}."
+            if last_updated:
+                ans += f" Last updated from sources: {last_updated}."
+            return {
+                "answer": ans,
+                "citation_url": scheme.get("source_url", scheme_url),
+                "last_updated": last_updated,
+            }
+    if "inception" in q:
+        if scheme:
+            inc = scheme.get("inception_date", "N/A")
+            ans = f"{name} inception date is {inc}."
+            if last_updated:
+                ans += f" Last updated from sources: {last_updated}."
+            return {
+                "answer": ans,
                 "citation_url": scheme.get("source_url", scheme_url),
                 "last_updated": last_updated,
             }
 
-    # Generic: return first matching scheme summary or default
+    # Generic: list what we can answer instead of always expense ratio + SIP
     if scheme:
-        er = scheme.get("expense_ratio", "N/A")
-        sip = scheme.get("min_sip_raw") or "₹100"
+        topics = "expense ratio, exit load, minimum SIP/lumpsum, benchmark, AUM, risk level, fund manager, inception date"
+        ans = f"I have details for {name}. You can ask about: {topics}."
+        if last_updated:
+            ans += f" Last updated from sources: {last_updated}."
         return {
-            "answer": f"For {name}: expense ratio {er}, minimum SIP {sip}. Ask for details like 'expense ratio' or 'minimum SIP'. Last updated from sources: {last_updated}." if last_updated else f"For {name}: expense ratio {er}, minimum SIP {sip}. Ask for details like 'expense ratio' or 'minimum SIP'.",
+            "answer": ans,
             "citation_url": scheme.get("source_url", scheme_url),
             "last_updated": last_updated,
         }

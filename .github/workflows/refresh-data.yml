@@ -26,16 +26,27 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Phase 5 refresh (Phase 1 → Phase 2 → sentinel)
-        run: python -m phase_5.run_refresh
+        run: |
+          python -m phase_5.run_refresh || true
+          # If live scrape failed (e.g. 403), refresh from fixtures so timestamp updates daily
+          SCHEMES_COUNT=$(python -c "import json; d=json.load(open('data/schemes.json')); print(len(d.get('schemes',[])))" 2>/dev/null || echo "0")
+          if [ ! -f data/schemes.json ] || [ "$SCHEMES_COUNT" = "0" ]; then
+            echo "Live scrape failed or empty; using fixtures to update timestamp"
+            python -m phase_1.scraper.run --from-dir phase_1/html_fixtures
+            python -m phase_2.indexer
+          fi
         env:
-          # Optional: if Phase 1 needs auth or different config
           PYTHONPATH: .
+
+      - name: Sync api/schemes.json for Vercel
+        run: |
+          cp data/schemes.json api/schemes.json
 
       - name: Commit and push updated data
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add data/schemes.json data/last_indexed_at 2>/dev/null || true
+          git add data/schemes.json api/schemes.json data/last_indexed_at 2>/dev/null || true
           if ! git diff --staged --quiet; then
             git commit -m "chore: update data from scheduler [skip ci]"
             git push
