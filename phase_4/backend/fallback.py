@@ -94,7 +94,10 @@ def answer_from_corpus(query: str, root: Path) -> dict[str, str]:
     Answer from schemes.json. Handles refusal, scheme-not-in-corpus, charges, risk, etc.
     Returns dict with answer, citation_url, last_updated.
     """
+    # Prefer data/schemes.json; on Vercel serverless we copy it to api/schemes.json at build
     path = root / "data" / "schemes.json"
+    if not path.exists():
+        path = root / "api" / "schemes.json"
     default = {
         "answer": "I can only answer factual questions about the 5 HDFC schemes (Large Cap, Flexi Cap, Mid Cap, Small Cap, Nifty 100 Index). Try asking about expense ratio, minimum SIP, or benchmark for a specific fund.",
         "citation_url": APPROVED_URLS[0],

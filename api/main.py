@@ -40,6 +40,8 @@ async def last_updated():
     """
     import json
     schemes_path = _ROOT / "data" / "schemes.json"
+    if not schemes_path.exists():
+        schemes_path = _ROOT / "api" / "schemes.json"
     if schemes_path.exists():
         try:
             with open(schemes_path, encoding="utf-8") as f:
