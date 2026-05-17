@@ -1,6 +1,6 @@
 {
   "meta": {
-    "last_scraped": "2026-05-16T11:07:29Z",
+    "last_scraped": "2026-05-17T11:15:44Z",
     "source_urls": [
       "https://www.indmoney.com/mutual-funds/hdfc-large-cap-fund-direct-plan-growth-option-2989",
       "https://www.indmoney.com/mutual-funds/hdfc-flexi-cap-fund-direct-plan-growth-option-3184",
@@ -29,7 +29,7 @@
       "inception_date": "1 January, 2013",
       "fund_manager": "of HDFC Large Cap Fund, since 22 June 2023Rahul BaijalFund Manager of HDFC Large Cap Fund, since 29 July 2022Learn more about HDFC Mutual FundAUM ChangeAll changes are between Feb'26 and Apr'26ParametersApr'26Mar'26Feb'26AUM₹ 38",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-large-cap-fund-direct-plan-growth-option-2989",
-      "scraped_at": "2026-05-16T11:07:28Z"
+      "scraped_at": "2026-05-17T11:15:43Z"
     },
     {
       "scheme_name": "HDFC Flexi Cap Fund - Direct Plan - Growth Option",
@@ -50,7 +50,7 @@
       "inception_date": "1 January, 2013",
       "fund_manager": "of HDFC Flexi Cap Fund, since 1 February 2026Dhruv MuchhalFund Manager of HDFC Flexi Cap Fund, since 22 June 2023Learn more about HDFC Mutual FundAUM ChangeAll changes are between Feb'26 and Apr'26ParametersApr'26Mar'26Feb'26AUM₹ 91",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-flexi-cap-fund-direct-plan-growth-option-3184",
-      "scraped_at": "2026-05-16T11:07:29Z"
+      "scraped_at": "2026-05-17T11:15:43Z"
     },
     {
       "scheme_name": "HDFC Mid Cap Fund - Direct Plan - Growth Option",
@@ -71,7 +71,7 @@
       "inception_date": "1 January, 2013",
       "fund_manager": "adopts a bottom-up stock-picking approach, focusing on individual companies rather than sectors or market trends",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-mid-cap-fund-direct-plan-growth-option-3097",
-      "scraped_at": "2026-05-16T11:07:29Z"
+      "scraped_at": "2026-05-17T11:15:43Z"
     },
     {
       "scheme_name": "HDFC Small Cap Fund - Direct Plan - Growth Option",
@@ -92,7 +92,7 @@
       "inception_date": "1 January, 2013",
       "fund_manager": "of HDFC Small Cap Fund, since 28 June 2014Dhruv MuchhalFund Manager of HDFC Small Cap Fund, since 22 June 2023Learn more about HDFC Mutual FundAUM ChangeAll changes are between Feb'26 and Apr'26ParametersApr'26Mar'26Feb'26AUM₹ 38",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-small-cap-fund-direct-growth-option-3580",
-      "scraped_at": "2026-05-16T11:07:29Z"
+      "scraped_at": "2026-05-17T11:15:44Z"
     },
     {
       "scheme_name": "HDFC Nifty 100 Index Fund - Direct Plan - Growth Option",
@@ -113,7 +113,7 @@
       "inception_date": "23 February, 2022",
       "fund_manager": "of HDFC Nifty 100 Index Fund, since 4 March 2022Nandita MenezesFund Manager of HDFC Nifty 100 Index Fund, since 29 March 2025Learn more about HDFC Mutual FundAUM ChangeAll changes are between Feb'26 and Apr'26ParametersApr'26Mar'26Feb'26AUM₹ 424",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-nifty-100-index-fund-direct-growth-1040567",
-      "scraped_at": "2026-05-16T11:07:29Z"
+      "scraped_at": "2026-05-17T11:15:44Z"
     }
   ],
   "evidence": [
