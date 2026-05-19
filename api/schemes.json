@@ -1,6 +1,6 @@
 {
   "meta": {
-    "last_scraped": "2026-05-18T13:52:36Z",
+    "last_scraped": "2026-05-19T12:46:02Z",
     "source_urls": [
       "https://www.indmoney.com/mutual-funds/hdfc-large-cap-fund-direct-plan-growth-option-2989",
       "https://www.indmoney.com/mutual-funds/hdfc-flexi-cap-fund-direct-plan-growth-option-3184",
@@ -16,7 +16,7 @@
       "category": "Large Cap",
       "plan_type": "Direct",
       "option_type": "Growth",
-      "expense_ratio": "1.03%",
+      "expense_ratio": "0.98%",
       "exit_load": "1.0%",
       "min_sip": 100,
       "min_sip_raw": "₹100",
@@ -29,7 +29,7 @@
       "inception_date": "1 January, 2013",
       "fund_manager": "of HDFC Large Cap Fund, since 29 July 2022Dhruv MuchhalFund Manager of HDFC Large Cap Fund, since 22 June 2023Learn more about HDFC Mutual FundAUM ChangeAll changes are between Feb'26 and Apr'26ParametersApr'26Mar'26Feb'26AUM₹ 38",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-large-cap-fund-direct-plan-growth-option-2989",
-      "scraped_at": "2026-05-18T13:52:34Z"
+      "scraped_at": "2026-05-19T12:46:01Z"
     },
     {
       "scheme_name": "HDFC Flexi Cap Fund - Direct Plan - Growth Option",
@@ -37,7 +37,7 @@
       "category": "Flexi Cap",
       "plan_type": "Direct",
       "option_type": "Growth",
-      "expense_ratio": "0.68%",
+      "expense_ratio": "0.67%",
       "exit_load": "1.0%",
       "min_sip": 100,
       "min_sip_raw": "₹100",
@@ -50,7 +50,7 @@
       "inception_date": "1 January, 2013",
       "fund_manager": "of HDFC Flexi Cap Fund, since 1 February 2026Dhruv MuchhalFund Manager of HDFC Flexi Cap Fund, since 22 June 2023Learn more about HDFC Mutual FundAUM ChangeAll changes are between Feb'26 and Apr'26ParametersApr'26Mar'26Feb'26AUM₹ 91",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-flexi-cap-fund-direct-plan-growth-option-3184",
-      "scraped_at": "2026-05-18T13:52:34Z"
+      "scraped_at": "2026-05-19T12:46:01Z"
     },
     {
       "scheme_name": "HDFC Mid Cap Fund - Direct Plan - Growth Option",
@@ -58,7 +58,7 @@
       "category": "Mid Cap",
       "plan_type": "Direct",
       "option_type": "Growth",
-      "expense_ratio": "0.77%",
+      "expense_ratio": "0.72%",
       "exit_load": "1.0%",
       "min_sip": 100,
       "min_sip_raw": "₹100",
@@ -71,7 +71,7 @@
       "inception_date": "1 January, 2013",
       "fund_manager": "adopts a bottom-up stock-picking approach, focusing on individual companies rather than sectors or market trends",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-mid-cap-fund-direct-plan-growth-option-3097",
-      "scraped_at": "2026-05-18T13:52:35Z"
+      "scraped_at": "2026-05-19T12:46:02Z"
     },
     {
       "scheme_name": "HDFC Small Cap Fund - Direct Plan - Growth Option",
@@ -79,7 +79,7 @@
       "category": "Small Cap",
       "plan_type": "Direct",
       "option_type": "Growth",
-      "expense_ratio": "0.8%",
+      "expense_ratio": "0.73%",
       "exit_load": "1.0%",
       "min_sip": 100,
       "min_sip_raw": "₹100",
@@ -92,7 +92,7 @@
       "inception_date": "1 January, 2013",
       "fund_manager": "of HDFC Small Cap Fund, since 28 June 2014Dhruv MuchhalFund Manager of HDFC Small Cap Fund, since 22 June 2023Learn more about HDFC Mutual FundAUM ChangeAll changes are between Feb'26 and Apr'26ParametersApr'26Mar'26Feb'26AUM₹ 38",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-small-cap-fund-direct-growth-option-3580",
-      "scraped_at": "2026-05-18T13:52:35Z"
+      "scraped_at": "2026-05-19T12:46:02Z"
     },
     {
       "scheme_name": "HDFC Nifty 100 Index Fund - Direct Plan - Growth Option",
@@ -100,7 +100,7 @@
       "category": "Index",
       "plan_type": "Direct",
       "option_type": "Growth",
-      "expense_ratio": "0.3%",
+      "expense_ratio": "0.29%",
       "exit_load": "0%",
       "min_sip": 100,
       "min_sip_raw": "₹100",
@@ -113,14 +113,14 @@
       "inception_date": "23 February, 2022",
       "fund_manager": "of HDFC Nifty 100 Index Fund, since 4 March 2022Nandita MenezesFund Manager of HDFC Nifty 100 Index Fund, since 29 March 2025Learn more about HDFC Mutual FundAUM ChangeAll changes are between Feb'26 and Apr'26ParametersApr'26Mar'26Feb'26AUM₹ 424",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-nifty-100-index-fund-direct-growth-1040567",
-      "scraped_at": "2026-05-18T13:52:36Z"
+      "scraped_at": "2026-05-19T12:46:02Z"
     }
   ],
   "evidence": [
     {
       "field_name": "expense_ratio",
-      "field_value": "1.03%",
-      "evidence_text": "Expense ratio | 1.03%",
+      "field_value": "0.98%",
+      "evidence_text": "Expense ratio | 0.98%",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-large-cap-fund-direct-plan-growth-option-2989",
       "scheme_name": "HDFC Large Cap Fund - Direct Plan - Growth Option"
     },
@@ -182,8 +182,8 @@
     },
     {
       "field_name": "expense_ratio",
-      "field_value": "0.68%",
-      "evidence_text": "Expense ratio | 0.68%",
+      "field_value": "0.67%",
+      "evidence_text": "Expense ratio | 0.67%",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-flexi-cap-fund-direct-plan-growth-option-3184",
       "scheme_name": "HDFC Flexi Cap Fund - Direct Plan - Growth Option"
     },
@@ -245,8 +245,8 @@
     },
     {
       "field_name": "expense_ratio",
-      "field_value": "0.77%",
-      "evidence_text": "Expense ratio | 0.77%",
+      "field_value": "0.72%",
+      "evidence_text": "Expense ratio | 0.72%",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-mid-cap-fund-direct-plan-growth-option-3097",
       "scheme_name": "HDFC Mid Cap Fund - Direct Plan - Growth Option"
     },
@@ -308,8 +308,8 @@
     },
     {
       "field_name": "expense_ratio",
-      "field_value": "0.8%",
-      "evidence_text": "Expense ratio | 0.8%",
+      "field_value": "0.73%",
+      "evidence_text": "Expense ratio | 0.73%",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-small-cap-fund-direct-growth-option-3580",
       "scheme_name": "HDFC Small Cap Fund - Direct Plan - Growth Option"
     },
@@ -371,8 +371,8 @@
     },
     {
       "field_name": "expense_ratio",
-      "field_value": "0.3%",
-      "evidence_text": "Expense ratio | 0.3%",
+      "field_value": "0.29%",
+      "evidence_text": "Expense ratio | 0.29%",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-nifty-100-index-fund-direct-growth-1040567",
       "scheme_name": "HDFC Nifty 100 Index Fund - Direct Plan - Growth Option"
     },
