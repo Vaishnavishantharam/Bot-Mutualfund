@@ -1,6 +1,6 @@
 {
   "meta": {
-    "last_scraped": "2026-07-16T11:45:36Z",
+    "last_scraped": "2026-07-17T11:25:24Z",
     "source_urls": [
       "https://www.indmoney.com/mutual-funds/hdfc-large-cap-fund-direct-plan-growth-option-2989",
       "https://www.indmoney.com/mutual-funds/hdfc-flexi-cap-fund-direct-plan-growth-option-3184",
@@ -27,9 +27,9 @@
       "benchmark": "Nifty 100 TR INR",
       "aum": "₹ 39K Cr",
       "inception_date": "1 January, 2013",
-      "fund_manager": "of HDFC Large Cap Fund, since 22 June 2023Rahul BaijalFund Manager of HDFC Large Cap Fund, since 29 July 2022Learn more about HDFC Mutual FundAUM ChangeAll changes are between Apr'26 and Jun'26ParametersJun'26May'26Apr'26AUM₹ 39K Cr₹ 37",
+      "fund_manager": "of HDFC Large Cap Fund, since 29 July 2022Dhruv MuchhalFund Manager of HDFC Large Cap Fund, since 22 June 2023Learn more about HDFC Mutual FundAUM ChangeAll changes are between Apr'26 and Jun'26ParametersJun'26May'26Apr'26AUM₹ 39K Cr₹ 37",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-large-cap-fund-direct-plan-growth-option-2989",
-      "scraped_at": "2026-07-16T11:45:33Z"
+      "scraped_at": "2026-07-17T11:25:20Z"
     },
     {
       "scheme_name": "HDFC Flexi Cap Fund - Direct Plan - Growth Option",
@@ -50,7 +50,7 @@
       "inception_date": "1 January, 2013",
       "fund_manager": "of HDFC Flexi Cap Fund, since 1 February 2026Dhruv MuchhalFund Manager of HDFC Flexi Cap Fund, since 22 June 2023Learn more about HDFC Mutual FundAUM ChangeAll changes are between Apr'26 and Jun'26ParametersJun'26May'26Apr'26AUM₹ 1",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-flexi-cap-fund-direct-plan-growth-option-3184",
-      "scraped_at": "2026-07-16T11:45:33Z"
+      "scraped_at": "2026-07-17T11:25:22Z"
     },
     {
       "scheme_name": "HDFC Mid Cap Fund - Direct Plan - Growth Option",
@@ -71,7 +71,7 @@
       "inception_date": "1 January, 2013",
       "fund_manager": "adopts a bottom-up stock-picking approach, focusing on individual companies rather than sectors or market trends",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-mid-cap-fund-direct-plan-growth-option-3097",
-      "scraped_at": "2026-07-16T11:45:34Z"
+      "scraped_at": "2026-07-17T11:25:22Z"
     },
     {
       "scheme_name": "HDFC Small Cap Fund - Direct Plan - Growth Option",
@@ -92,7 +92,7 @@
       "inception_date": "1 January, 2013",
       "fund_manager": "of HDFC Small Cap Fund, since 28 June 2014Dhruv MuchhalFund Manager of HDFC Small Cap Fund, since 22 June 2023Learn more about HDFC Mutual FundAUM ChangeAll changes are between Apr'26 and Jun'26ParametersJun'26May'26Apr'26AUM₹ 40",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-small-cap-fund-direct-growth-option-3580",
-      "scraped_at": "2026-07-16T11:45:34Z"
+      "scraped_at": "2026-07-17T11:25:23Z"
     },
     {
       "scheme_name": "HDFC Nifty 100 Index Fund - Direct Plan - Growth Option",
@@ -100,7 +100,7 @@
       "category": "Index",
       "plan_type": "Direct",
       "option_type": "Growth",
-      "expense_ratio": "0.29%",
+      "expense_ratio": "0.35%",
       "exit_load": "0%",
       "min_sip": 100,
       "min_sip_raw": "₹100",
@@ -113,7 +113,7 @@
       "inception_date": "23 February, 2022",
       "fund_manager": "of HDFC Nifty 100 Index Fund, since 4 March 2022Nandita MenezesFund Manager of HDFC Nifty 100 Index Fund, since 29 March 2025Learn more about HDFC Mutual FundAUM ChangeAll changes are between Apr'26 and Jun'26ParametersJun'26May'26Apr'26AUM₹ 448",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-nifty-100-index-fund-direct-growth-1040567",
-      "scraped_at": "2026-07-16T11:45:36Z"
+      "scraped_at": "2026-07-17T11:25:24Z"
     }
   ],
   "evidence": [
@@ -371,8 +371,8 @@
     },
     {
       "field_name": "expense_ratio",
-      "field_value": "0.29%",
-      "evidence_text": "Expense ratio | 0.29%",
+      "field_value": "0.35%",
+      "evidence_text": "Expense ratio | 0.35%",
       "source_url": "https://www.indmoney.com/mutual-funds/hdfc-nifty-100-index-fund-direct-growth-1040567",
       "scheme_name": "HDFC Nifty 100 Index Fund - Direct Plan - Growth Option"
     },
